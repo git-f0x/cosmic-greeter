@@ -2,7 +2,7 @@ use cosmic::iced::widget::{
     image::{draw, FilterMethod, Handle},
     Container,
 };
-use cosmic::iced::ContentFit;
+use cosmic::iced::{ContentFit, Radians, Vector};
 use cosmic::iced_core::event::{self, Event};
 use cosmic::iced_core::layout;
 use cosmic::iced_core::mouse;
@@ -10,14 +10,13 @@ use cosmic::iced_core::overlay;
 use cosmic::iced_core::renderer;
 use cosmic::iced_core::widget::{Operation, Tree};
 use cosmic::iced_core::{Clipboard, Element, Layout, Length, Rectangle, Shell, Size, Widget};
-use cosmic::iced_renderer::core::widget::OperationOutputWrapper;
 
-pub use cosmic::iced_style::container::StyleSheet;
+pub use cosmic::widget::container::Catalog;
 
 pub struct ImageContainer<'a, Message, Theme, Renderer>
 where
     Renderer: cosmic::iced_core::Renderer + cosmic::iced_core::image::Renderer<Handle = Handle>,
-    Theme: StyleSheet,
+    Theme: Catalog,
 {
     container: Container<'a, Message, Theme, Renderer>,
     image_opt: Option<Handle>,
@@ -27,7 +26,7 @@ where
 impl<'a, Message, Renderer> ImageContainer<'a, Message, cosmic::Theme, Renderer>
 where
     Renderer: cosmic::iced_core::Renderer + cosmic::iced_core::image::Renderer<Handle = Handle>,
-    cosmic::Theme: StyleSheet,
+    cosmic::Theme: Catalog,
 {
     pub fn new(container: Container<'a, Message, cosmic::Theme, Renderer>) -> Self {
         Self {
@@ -79,7 +78,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn Operation<OperationOutputWrapper<Message>>,
+        operation: &mut dyn Operation<()>,
     ) {
         self.container.operate(tree, layout, renderer, operation)
     }
@@ -129,6 +128,8 @@ where
                 image,
                 self.content_fit,
                 FilterMethod::Linear,
+                Radians(0.0).into(),
+                1.0,
                 [0.0, 0.0, 0.0, 0.0],
             ),
             None => {}
@@ -150,8 +151,9 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        translation: Vector,
     ) -> Option<overlay::Element<'b, Message, cosmic::Theme, Renderer>> {
-        self.container.overlay(tree, layout, renderer)
+        self.container.overlay(tree, layout, renderer, translation)
     }
 }
 

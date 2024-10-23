@@ -1,13 +1,12 @@
 use cosmic::iced::{
     futures::{channel::mpsc, SinkExt, StreamExt},
-    subscription, Subscription,
+    stream, Subscription,
 };
 use logind_zbus::{
     manager::{InhibitType, ManagerProxy},
     session::SessionProxy,
 };
 use std::{any::TypeId, error::Error, os::fd::OwnedFd, sync::Arc};
-use tokio::time;
 use zbus::Connection;
 
 use crate::locker::Message;
@@ -47,10 +46,9 @@ async fn inhibit(manager: &ManagerProxy<'_>) -> zbus::Result<OwnedFd> {
 pub fn subscription() -> Subscription<Message> {
     struct LogindSubscription;
 
-    subscription::channel(
+    Subscription::run_with_id(
         TypeId::of::<LogindSubscription>(),
-        16,
-        |mut msg_tx| async move {
+        stream::channel(16, |mut msg_tx| async move {
             match handler(&mut msg_tx).await {
                 Ok(()) => {}
                 Err(err) => {
@@ -60,7 +58,7 @@ pub fn subscription() -> Subscription<Message> {
             }
 
             std::process::exit(1);
-        },
+        }),
     )
 }
 
@@ -68,7 +66,9 @@ pub fn subscription() -> Subscription<Message> {
 pub async fn handler(msg_tx: &mut mpsc::Sender<Message>) -> Result<(), Box<dyn Error>> {
     let connection = Connection::system().await?;
     let manager = ManagerProxy::new(&connection).await?;
-    let session_path = manager.get_session_by_PID(std::os::unix::process::parent_id()).await?;
+    let session_path = manager
+        .get_session_by_PID(std::os::unix::process::parent_id())
+        .await?;
     let session = SessionProxy::builder(&connection)
         .path(&session_path)?
         .build()
